@@ -480,12 +480,12 @@ document.getElementById('btn-vent').addEventListener('click', function(e) {
 });
 
 (function trackView() {
-  const counterApi = 'https://api.countapi.xyz/hit/boss-direct-reject-game/visits';
+  const counterApi = 'https://api.counterapi.dev/v1/boss-direct-reject/visits/up';
   fetch(counterApi)
     .then(res => res.json())
     .then(data => {
-      if (data && data.value !== undefined) {
-        document.getElementById('view-count').textContent = data.value;
+      if (data && data.count !== undefined) {
+        document.getElementById('view-count').textContent = data.count;
       }
     })
     .catch(() => {
