@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Boss直拒</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#d9dee3;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+
+.phone-frame{width:390px;max-width:100%;height:740px;max-height:95vh;background:#1a1c20;border-radius:44px;padding:12px;box-shadow:0 0 0 2.5px #2d2f34,0 0 0 5px #1a1c20,0 25px 60px rgba(0,0,0,.45);position:relative}
+.phone-screen{width:100%;height:100%;background:#fff;border-radius:33px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+
+.phone-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:130px;height:28px;background:#1a1c20;border-radius:0 0 20px 20px;z-index:300}
+
+.phone-status-bar{padding:16px 28px 8px;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:#111;flex-shrink:0}
+.phone-status-bar .time{font-size:15px;font-weight:700}
+.phone-status-icons{display:flex;gap:5px;align-items:center;font-size:13px;color:#333}
+
+.phone-home{width:134px;height:5px;background:#d0d0d0;border-radius:100px;margin:0 auto 8px;flex-shrink:0}
+
+#app{flex:1;display:flex;flex-direction:column;background:#fff;overflow:hidden;position:relative}
+
+#status-bar{background:linear-gradient(135deg,#53cac3,#21b39f);color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;flex-shrink:0}
+.status-item{display:flex;align-items:center;gap:5px}
+.status-val{background:rgba(255,255,255,.22);padding:2px 10px;border-radius:12px;font-size:14px;min-width:32px;text-align:center;transition:all .3s}
+.status-val.score.hit{animation:scoreHit .4s ease}
+
+#main-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+#chat-panel{background:#f7f8fa;border-bottom:1px solid #e8ecf0;padding:12px 20px;flex-shrink:0}
+.chat-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.chat-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
+.chat-name{font-size:15px;font-weight:600;color:#222}
+.chat-bubble{background:#fff;border-radius:4px 14px 14px 14px;padding:10px 14px;font-size:13px;line-height:1.6;color:#444;box-shadow:0 1px 6px rgba(0,0,0,.05);position:relative;animation:bubbleIn .4s ease}
+.chat-bubble::before{content:'';position:absolute;top:0;left:-7px;width:10px;height:10px;background:#fff;clip-path:polygon(100% 0,0 0,100% 100%)}
+
+#resume-panel{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;animation:fadeIn .35s ease}
+.resume-card{background:#fff;border:1px solid #ebebeb;border-radius:12px;padding:20px 22px}
+.resume-card h2{font-size:20px;color:#222;margin-bottom:4px}
+.resume-card .resume-subtitle{font-size:12px;color:#aaa;margin-bottom:16px}
+.resume-card .resume-body{font-size:14px;line-height:2;color:#555;position:relative}
+.resume-body .clickable-text{cursor:pointer;padding:2px 3px;border-radius:3px;transition:background .15s}
+.resume-body .clickable-text:hover{background:#fef9f0}
+
+.resume-hint{text-align:center;margin-top:12px;font-size:11px;color:#c0c0c0}
+.resume-hint span{font-style:italic}
+
+#action-bar{display:flex;gap:10px;padding:12px 16px;border-top:1px solid #eee;background:#fafafa;flex-shrink:0}
+.btn{flex:1;padding:13px 8px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.btn:active{transform:scale(.95)}
+.btn-pass{background:linear-gradient(135deg,#53cac3,#21b39f);color:#fff;box-shadow:0 3px 12px rgba(83,202,195,.3)}
+.btn-pass:hover{box-shadow:0 5px 16px rgba(83,202,195,.45);transform:translateY(-1px)}
+.btn-vent{background:linear-gradient(135deg,#ff6b6b,#ee5a24);color:#fff;font-size:17px;box-shadow:0 3px 12px rgba(255,107,107,.3);letter-spacing:1px}
+.btn-vent:hover{box-shadow:0 5px 16px rgba(255,107,107,.45);transform:translateY(-1px)}
+
+#effects-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:150}
+.effect-x{position:absolute;font-size:70px;color:#e74c3c;font-weight:900;opacity:0;animation:ventX .8s ease forwards}
+.effect-score{position:absolute;font-size:20px;font-weight:900;opacity:0;animation:floatUp .9s ease forwards;pointer-events:none;white-space:nowrap}
+.effect-score.negative{color:#e74c3c}
+.effect-score.positive{color:#27ae60}
+
+.screen-shake{animation:shake .5s ease}
+
+#hr-comment{position:absolute;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:160;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center;white-space:nowrap}
+#hr-comment.show{opacity:1}
+
+#result-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:200;justify-content:center;align-items:center}
+#result-modal.show{display:flex}
+.modal-content{background:#fff;border-radius:18px;padding:36px 30px;text-align:center;max-width:380px;width:90%;animation:modalIn .4s ease}
+.modal-content h2{font-size:24px;margin-bottom:14px}
+.modal-content .result-score{font-size:17px;color:#666;margin-bottom:6px}
+.modal-content .result-comment{font-size:13px;color:#888;line-height:1.7;margin-bottom:24px}
+.modal-content .result-detail{font-size:12px;color:#aaa;margin-bottom:18px}
+.btn-restart{background:linear-gradient(135deg,#53cac3,#21b39f);color:#fff;border:none;padding:13px 44px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-restart:hover{box-shadow:0 5px 16px rgba(83,202,195,.45);transform:translateY(-2px)}
+
+@keyframes bubbleIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scoreHit{0%{transform:scale(1)}50%{transform:scale(1.3);color:#ffeaa7}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px)}}
+@keyframes ventX{0%{opacity:0;transform:scale(0) rotate(0deg)}50%{opacity:1;transform:scale(1.2) rotate(15deg)}100%{opacity:0;transform:scale(1) rotate(-5deg)}}
+@keyframes modalIn{from{opacity:0;transform:scale(.8) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+.view-counter{text-align:center;margin-top:18px;font-size:12px;color:#999;font-weight:500}
+.view-counter span{color:#53cac3;font-weight:700}
+
+@media(max-width:440px){
+  html{height:100%;overflow:hidden}
+  body{padding:0;background:#fff;display:block;height:100%;height:100dvh;overflow:hidden}
+  .phone-frame{width:100%;height:100%;max-height:none;border-radius:0;padding:0;box-shadow:none;background:transparent;display:flex;flex-direction:column}
+  .phone-screen{border-radius:0;flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .phone-notch{display:none}
+  .phone-status-bar{display:none}
+  .phone-home{display:none}
+  #app{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  #status-bar{padding:10px 14px;font-size:12px;padding-top:max(10px,env(safe-area-inset-top,10px))}
+  .status-val{font-size:11px;min-width:26px;padding:2px 7px}
+  .status-item{font-size:11px;gap:3px}
+  #main-area{flex:1;overflow:hidden}
+  #chat-panel{padding:10px 14px;flex-shrink:0}
+  .chat-header{margin-bottom:6px}
+  .chat-avatar{width:34px;height:34px;font-size:14px}
+  .chat-name{font-size:14px}
+  .chat-bubble{font-size:12px;padding:8px 12px}
+  #resume-panel{padding:10px 14px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .resume-card{padding:12px 14px}
+  .resume-card h2{font-size:18px}
+  .resume-card .resume-subtitle{font-size:11px;margin-bottom:12px}
+  .resume-card .resume-body{font-size:13px;line-height:1.9}
+  .resume-body .clickable-text{padding:3px 4px}
+  .resume-hint{margin-top:10px;font-size:10px}
+  #action-bar{padding:10px 12px;gap:8px;flex-shrink:0;padding-bottom:max(10px,env(safe-area-inset-bottom,10px))}
+  .btn{font-size:14px;padding:14px 8px;border-radius:10px;min-height:48px}
+  .btn-vent{font-size:16px}
+  #hr-comment{bottom:80px;font-size:12px;padding:8px 14px;max-width:85%}
+  .effect-x{font-size:50px}
+  .effect-score{font-size:16px}
+  .view-counter{position:fixed;bottom:4px;left:50%;transform:translateX(-50%);z-index:50;font-size:10px;margin:0;padding:4px 12px;background:rgba(255,255,255,.85);backdrop-filter:blur(4px);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .modal-content{padding:28px 22px}
+  .modal-content h2{font-size:21px}
+  .modal-content .result-comment{font-size:12px;line-height:1.6}
+}
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="phone-screen">
+    <div class="phone-notch"></div>
+    <div class="phone-status-bar">
+      <span class="time">9:41</span>
+      <span class="phone-status-icons">📶  📡  🔋</span>
+    </div>
+    <div id="app">
+      <div id="status-bar">
+        <div class="status-item">💰 得分: <span class="status-val score" id="score-display">100</span></div>
+        <div class="status-item">📋 进度: <span class="status-val" id="progress-display">0/30</span></div>
+        <div class="status-item">✅ 通过: <span class="status-val" id="passed-display">0/10</span></div>
+      </div>
+      <div id="main-area">
+        <div id="chat-panel">
+          <div class="chat-header">
+            <div class="chat-avatar" id="chat-avatar">?</div>
+            <div class="chat-name" id="chat-name"></div>
+          </div>
+          <div class="chat-bubble" id="chat-bubble"></div>
+        </div>
+        <div id="resume-panel">
+          <div class="resume-card">
+            <h2 id="resume-name"></h2>
+            <div class="resume-subtitle" id="resume-subtitle"></div>
+            <div class="resume-body" id="resume-body"></div>
+          </div>
+          <div class="resume-hint"><span>仔细阅读简历，点击你认为有问题的内容来拒绝候选人</span></div>
+        </div>
+      </div>
+      <div id="action-bar">
+        <button class="btn btn-pass" id="btn-pass">✅ 全面面试（通过）</button>
+        <button class="btn btn-vent" id="btn-vent">💢 已读不回（宣泄）</button>
+      </div>
+      <div id="effects-overlay"></div>
+      <div id="hr-comment"></div>
+    </div>
+    <div class="phone-home"></div>
+  </div>
+</div>
+<div class="view-counter">👁 累计浏览量: <span id="view-count">---</span></div>
+<div id="result-modal">
+  <div class="modal-content">
+    <h2 id="result-title"></h2>
+    <div class="result-score" id="result-score"></div>
+    <div class="result-detail" id="result-detail"></div>
+    <div class="result-comment" id="result-comment"></div>
+    <button class="btn-restart" onclick="restartGame()">🔄 再来一局</button>
+  </div>
+</div>
+
+<script>
+const resumes = [
+  {name:"劳达",intro:"您好！我看到贵公司在招岗位，我愿意接受24小时待命，只要能进大厂学习！",content:"【工作经历】前公司任职3年，主导过大型项目。保持手机24小时开机，随时响应突发需求。【自我评价】抗压能力极强，视公司为家，不追求准点下班，只求把事情做好。",wrongPoint:"",isTarget:true,avatarColor:"#3498db"},
+  {name:"霍牛",intro:"老板您好，我精通全栈开发，可以一个人顶一个团队，薪资按行业标准打八折就行。",content:"【工作经历】5年全栈开发经验，写代码无Bug，精通前后端及运维。【自我评价】单身无家庭负担，周末喜欢在公司写代码，认为工作是最好的娱乐方式。",wrongPoint:"",isTarget:true,avatarColor:"#2ecc71"},
+  {name:"甄踏实",intro:"您好，这是我的作品集。我性格沉稳，擅长解决团队内的脏活累活。",content:"【工作经历】4年视觉设计，经手100+线上项目，产出稳定率100%。【自我评价】执行力强，服从领导安排，能够快速根据反馈修改设计，绝无怨言。",wrongPoint:"",isTarget:true,avatarColor:"#9b59b6"},
+  {name:"付出群",intro:"您好，我对贵公司的产品非常熟悉，已经提前为公司写了一份50页的优化方案。",content:"【工作经历】大厂市场策划3年，擅长0到1裂变。附带对贵公司竞品的深度分析报告。【自我评价】自驱力极强，愿意为了KPI自愿放弃年假。",wrongPoint:"",isTarget:true,avatarColor:"#e67e22"},
+  {name:"包满意",intro:"招我绝对不亏！我有现成的客户资源，入职第一天就能带200万业绩进来！",content:"【工作经历】资深销售经理，手握行业核心客户名单，连续三年销冠。【自我评价】目标导向型人格，不达业绩不拿提成，可以自备车辆跑业务。",wrongPoint:"",isTarget:true,avatarColor:"#1abc9c"},
+  {name:"郭产出",intro:"HR您好，我效率极高，别人一星期完不成的代码，我通常只需要两天。",content:"【工作经历】高级算法工程师，优化了前东家核心模型，降本增效达40%。【自我评价】追求极致效率，拒绝无效开会，只用结果说话。",wrongPoint:"",isTarget:true,avatarColor:"#e74c3c"},
+  {name:"任劳",intro:"只要平台好，我能和公司一起熬过初创期，不计较眼前的一得一失。",content:"【工作经历】曾陪同一家创业公司从5人发展到100人，负责全盘行政人力。【自我评价】有极强的忠诚度和主人翁意识，擅长解决初创团队的突发杂事。",wrongPoint:"",isTarget:true,avatarColor:"#f39c12"},
+  {name:"钱少",intro:"刚毕业，只要能管饭和提供住宿，实习期不拿薪资也可以，希望能给个面试机会。",content:"【教育背景】名校优秀毕业生，绩点前5%。【自我评价】极度渴望学习，上手极快，愿意从最基层的打杂工作做起。",wrongPoint:"",isTarget:true,avatarColor:"#2980b9"},
+  {name:"稳定强",intro:"您好，我想找一份能长期做下去的工作，我开过店，深知老板创业的不容易。",content:"【工作经历】连续在两家大企业各任职4年，稳定性极高，从未主动离职。【自我评价】能够理解管理层的难处，善于在规章制度内把效率最大化。",wrongPoint:"",isTarget:true,avatarColor:"#27ae60"},
+  {name:"艾加班",intro:"晚上10点以后我精神最好，请问公司支持员工在公司吃夜宵和加班吗？",content:"【工作经历】3年夜班技术客服经验，擅长处理海外客户投诉，好评率98%。【自我评价】天生夜猫子，极其适应倒班和夜间紧急呼叫。",wrongPoint:"",isTarget:true,avatarColor:"#8e44ad"},
+  {name:"李四",intro:"你们有加班费吗？没有别回，浪费大家时间。",content:"【工作经历】1年换了3家公司。【自我评价】个人技能很强，但工作只是我的副业，我的主要精力要放在生活和享受上。",wrongPoint:"工作只是我的副业，我的主要精力要放在生活和享受上",isTarget:false,avatarColor:"#c0392b",hrComment:"你来上班是来享受的？那我成什么了？送福报的活菩萨？"},
+  {name:"陆总",intro:"帮你对齐一下高层颗粒度，赋能业务板块。",content:"【项目业绩】负责打通底层逻辑，将沉淀的行业方法论进行矩阵式拉通，成功在一年内协同各部门开了300场同步对齐会，输出了两百份PPT。",wrongPoint:"成功在一年内协同各部门开了300场同步对齐会",isTarget:false,avatarColor:"#7f8c8d",hrComment:"一年365天你开了300场会？全公司天天不干活光陪你聊天对齐了是吧！"},
+  {name:"赵公子",intro:"哥们，看你这破公司挺小的，我来当个经理玩玩。",content:"【工作经历】从没上过班，但我爸是开厂的，我觉得我的基因管理你们这帮员工绰绰有余。",wrongPoint:"从没上过班，但我爸是开厂的，我觉得我的基因管理你们这帮员工绰绰有余",isTarget:false,avatarColor:"#d35400",hrComment:"那你回去继承家产啊！来我这里体验生活是吧？"},
+  {name:"摸鱼大师",intro:"你好，听说你们公司午休有两小时？",content:"【工作经历】上一任公司行政。我的特长是能在带薪上厕所时，在马桶上精准摸鱼1小时不被主管发现。",wrongPoint:"我的特长是能在带薪上厕所时，在马桶上精准摸鱼1小时不被主管发现",isTarget:false,avatarColor:"#16a085",hrComment:"公司花钱招你来当马桶守护神吗？"},
+  {name:"考公分心哥",intro:"您好，如果录用了，我周六可能需要请假去考试。",content:"【工作经历】2022-2025一直在家全力以赴备考公务员，今年没考上，暂时找个班上当备胎。",wrongPoint:"一直在家全力以赴备考公务员，今年没考上，暂时找个班上当备胎",isTarget:false,avatarColor:"#2c3e50",hrComment:"拿公司当旅馆呢？等上岸了拍拍屁股就走是吧？"},
+  {name:"自信爆棚姐",intro:"虽然我什么都不会，但我长得好看，能活跃公司气氛。",content:"【专业技能】不会写代码，不会做设计，不会写方案。但我有10个备胎天天帮我做，所以我能按时交差。",wrongPoint:"但我有10个备胎天天帮我做，所以我能按时交差",isTarget:false,avatarColor:"#e91e63",hrComment:"这叫分布式外包是吧？你搁这当项目经理呢？"},
+  {name:"情绪不稳哥",intro:"招聘广告字太多了懒得看，直接开个价吧。",content:"【自我评价】我这个人性格很直。如果老板语气不好或者敢公开批评我，我当场就会在办公室砸电脑发疯。",wrongPoint:"如果老板语气不好或者敢公开批评我，我当场就会在办公室砸电脑发疯",isTarget:false,avatarColor:"#ff5722",hrComment:"这是招了个员工还是招了个定时炸弹啊？"},
+  {name:"薪资狂人",intro:"你们最高能给到多少？少于3万别跟我说话。",content:"【期望薪资】35,000元/月。【工作经历】1年不到的实习经验。我认为我的天赋不输马斯克，配得上这个薪资。",wrongPoint:"我认为我的天赋不输马斯克，配得上这个薪资",isTarget:false,avatarColor:"#f44336",hrComment:"马斯克看了都想连夜把火箭送给你让你上天。"},
+  {name:"奇葩头像控",intro:"滴滴，看我。",content:"【个人形象】简历头像是一只抠脚的咸鱼。我认为用本尊头像上班会泄露我尊贵的个人隐私。",wrongPoint:"我认为用本尊头像上班会泄露我尊贵的个人隐私",isTarget:false,avatarColor:"#795548",hrComment:"你以为你在玩网络密室逃脱呢？还隐私保护。"},
+  {name:"斜杠青年",intro:"你好，我白天上班，晚上还要兼职做代购和直播。",content:"【自我评价】身兼数职，精力充沛。计划上班时间顺便帮我的微商客户发发货，希望公司有免费的快递网点。",wrongPoint:"计划上班时间顺便帮我的微商客户发发货，希望公司有免费的快递网点",isTarget:false,avatarColor:"#607d8b",hrComment:"把公司办公室当成你的免费物流中转站了？"},
+  {name:"老板是我儿",intro:"听说你们老板挺有钱的？",content:"【求职动机】来你们公司主要是为了找机会跟老板谈恋爱，嫁入豪门后我就能直接退休。",wrongPoint:"来你们公司主要是为了找机会跟老板谈恋爱，嫁入豪门后我就能直接退休",isTarget:false,avatarColor:"#e91e63",hrComment:"老板娘好！请您去前台左转，不要打扰我们打工人。"},
+  {name:"复制粘贴侠",intro:"你好，我很喜欢贵公司的公司文化。",content:"【工作经历】在上一家公司表现优异，成功帮老板洗车、接送小孩上学、辅导功课一年。",wrongPoint:"成功帮老板洗车、接送小孩上学、辅导功课一年",isTarget:false,avatarColor:"#9e9e9e",hrComment:"你投错行了吧，我们这招的是开发，不是二十四孝好管家。"},
+  {name:"消失的打工人",intro:"你好，我办过健身卡。",content:"【自我评价】注重生活质量，每周二和周四下午必须去健身房，那几个小时不要给我打电话发微信。",wrongPoint:"每周二和周四下午必须去健身房，那几个小时不要给我打电话发微信",isTarget:false,avatarColor:"#4caf50",hrComment:"上班还带中场休息的？你怎么不直接去开健身房？"},
+  {name:"鸽王",intro:"你好，请问公司考勤严格吗？",content:"【工作态度】经常因为早上起不来而临时请病假，希望公司能理解生理时钟。",wrongPoint:"经常因为早上起不来而临时请病假，希望公司能理解生理时钟",isTarget:false,avatarColor:"#ff9800",hrComment:"你的生理时钟是下午两点才醒是吧？"},
+  {name:"摆烂人",intro:"我就随便投投，你们爱要不要。",content:"【工作原则】工作原则是：只要领导不催，我就绝对不干；只要能交差，质量无所谓。",wrongPoint:"只要领导不催，我就绝对不干；只要能交差，质量无所谓",isTarget:false,avatarColor:"#795548",hrComment:"你把公司当养老院呢？"},
+  {name:"副业狂",intro:"你们公司有啥核心技术可以学吗？",content:"【真实目的】正在自己创业，来你们公司上几天班主要是为了偷学你们的商业机密。",wrongPoint:"正在自己创业，来你们公司上几天班主要是为了偷学你们的商业机密",isTarget:false,avatarColor:"#e53935",hrComment:"商业间谍都这么明目张胆了吗？"},
+  {name:"巨婴二号",intro:"我妈让我来问问你们公司加班多不多。",content:"【特别说明】如果加班，我妈妈会打电话到公司骂主管，请知悉。",wrongPoint:"如果加班，我妈妈会打电话到公司骂主管，请知悉",isTarget:false,avatarColor:"#f06292",hrComment:"你妈要不要一起来上班？我们这缺个门卫。"},
+  {name:"无所谓",intro:"你好，被迫营业中。",content:"【求职动机】我对这个岗位不感兴趣，是我爸妈逼我投递简历应付差事的。",wrongPoint:"我对这个岗位不感兴趣，是我爸妈逼我投递简历应付差事的",isTarget:false,avatarColor:"#90a4ae",hrComment:"那您回家吧，别委屈自己了。"},
+  {name:"玄学大师",intro:"我给你们公司算了一卦。",content:"【玄学分析】我算过了，你们老板的五行缺水，而我克水，我来上班你们公司迟早倒闭。",wrongPoint:"我算过了，你们老板的五行缺水，而我克水，我来上班你们公司迟早倒闭",isTarget:false,avatarColor:"#673ab7",hrComment:"建议你自己开个算命摊，别来祸害职场。"},
+  {name:"真硬伤",intro:"你好，35岁还能有机会吗？",content:"【个人情况】年龄：35岁，但在上一家大厂刚被优化裁员。",wrongPoint:"年龄：35岁，但在上一家大厂刚被优化裁员",isTarget:false,avatarColor:"#424242",hrComment:"这不叫硬伤，这叫被资本家榨干后无情抛弃……但你还是得被拒，对不住了。"},
+];
+
+const TOTAL = 30;
+const TARGET_COUNT = 10;
+
+let state = {
+  score: 100,
+  index: 0,
+  passedCount: 0,
+  locked: false,
+  gameOver: false,
+};
+
+const $score = document.getElementById('score-display');
+const $progress = document.getElementById('progress-display');
+const $passed = document.getElementById('passed-display');
+const $chatAvatar = document.getElementById('chat-avatar');
+const $chatName = document.getElementById('chat-name');
+const $chatBubble = document.getElementById('chat-bubble');
+const $resumePanel = document.getElementById('resume-panel');
+const $resumeName = document.getElementById('resume-name');
+const $resumeSubtitle = document.getElementById('resume-subtitle');
+const $resumeBody = document.getElementById('resume-body');
+const $btnPass = document.getElementById('btn-pass');
+const $btnVent = document.getElementById('btn-vent');
+const $effects = document.getElementById('effects-overlay');
+const $hrComment = document.getElementById('hr-comment');
+const $resultModal = document.getElementById('result-modal');
+const $app = document.getElementById('app');
+
+function getInitial(name) {
+  return name.charAt(0);
+}
+
+function updateStatus() {
+  $score.textContent = state.score;
+  $progress.textContent = `${state.index}/${TOTAL}`;
+  $passed.textContent = `${state.passedCount}/${TARGET_COUNT}`;
+}
+
+function flashScore() {
+  $score.classList.remove('hit');
+  void $score.offsetWidth;
+  $score.classList.add('hit');
+}
+
+function renderResume() {
+  if (state.index >= TOTAL) {
+    endGame();
+    return;
+  }
+  const r = resumes[state.index];
+  $chatAvatar.style.background = r.avatarColor;
+  $chatAvatar.textContent = getInitial(r.name);
+  $chatName.textContent = r.name;
+  $chatBubble.textContent = r.intro;
+  $resumeName.textContent = r.name;
+  $resumeSubtitle.textContent = '个人简历';
+
+  let html = '';
+  if (!r.wrongPoint) {
+    html = `<span class="clickable-text" data-wrong="false">${escapeHtml(r.content)}</span>`;
+  } else {
+    const idx = r.content.indexOf(r.wrongPoint);
+    if (idx === -1) {
+      html = `<span class="clickable-text" data-wrong="false">${escapeHtml(r.content)}</span>`;
+    } else {
+      const before = r.content.substring(0, idx);
+      const after = r.content.substring(idx + r.wrongPoint.length);
+      if (before) html += `<span class="clickable-text" data-wrong="false">${escapeHtml(before)}</span>`;
+      html += `<span class="clickable-text" data-wrong="true">${escapeHtml(r.wrongPoint)}</span>`;
+      if (after) html += `<span class="clickable-text" data-wrong="false">${escapeHtml(after)}</span>`;
+    }
+  }
+  $resumeBody.innerHTML = html;
+  $resumePanel.style.animation = 'none';
+  void $resumePanel.offsetWidth;
+  $resumePanel.style.animation = 'fadeIn .35s ease';
+  state.locked = false;
+  updateStatus();
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function showScoreEffect(text, cls) {
+  const el = document.createElement('div');
+  el.className = `effect-score ${cls}`;
+  el.textContent = text;
+  el.style.right = '20px';
+  el.style.top = '8px';
+  $effects.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function createVentEffect() {
+  const xs = ['❌','💢','🔥','💥','❌','😡'];
+  for (let i = 0; i < 6; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'effect-x';
+      el.textContent = xs[i];
+      el.style.left = (15 + Math.random() * 65) + '%';
+      el.style.top = (10 + Math.random() * 60) + '%';
+      el.style.fontSize = (35 + Math.random() * 70) + 'px';
+      $effects.appendChild(el);
+      setTimeout(() => el.remove(), 900);
+    }, i * 80);
+  }
+  $app.classList.add('screen-shake');
+  setTimeout(() => $app.classList.remove('screen-shake'), 500);
+}
+
+function showHrComment(comment) {
+  if (!comment) return;
+  $hrComment.textContent = '💬 ' + comment;
+  $hrComment.classList.add('show');
+  setTimeout(() => $hrComment.classList.remove('show'), 2200);
+}
+
+function handleAction(actionType, e) {
+  if (state.locked || state.gameOver) return;
+  state.locked = true;
+
+  const r = resumes[state.index];
+  let scoreChange = 0;
+  let feedbackText = '';
+  let feedbackCls = 'negative';
+
+  if (actionType === 'PASS') {
+    if (r.isTarget) {
+      state.passedCount++;
+      scoreChange = 0;
+      feedbackText = '✅ 通过！天选牛马+1';
+      feedbackCls = 'positive';
+    } else {
+      state.passedCount++;
+      state.score -= 10;
+      scoreChange = -10;
+      feedbackText = '❌ 误通过奇葩！-10分';
+      showHrComment('你还把这种人放进来？老板血压已经爆表了！');
+    }
+  } else if (actionType === 'NORMAL_REJECT') {
+    const target = e.target.closest('[data-wrong]');
+    const isCorrect = target && target.dataset.wrong === 'true';
+    if (isCorrect) {
+      scoreChange = 0;
+      feedbackText = '🎯 找茬成功！精准拒绝！';
+      feedbackCls = 'positive';
+      target.style.background = '#d4edda';
+      target.style.borderRadius = '4px';
+      showHrComment(r.hrComment || '');
+      if (r.isTarget) {
+        state.score -= 10;
+        scoreChange = -10;
+        feedbackText = '💀 拒错了！这是天选牛马！-10分';
+        feedbackCls = 'negative';
+      }
+    } else {
+      state.score -= 5;
+      scoreChange = -5;
+      feedbackText = '❌ 找茬失败！-5分';
+      if (r.isTarget) {
+        state.score -= 10;
+        scoreChange = -15;
+        feedbackText = '💀 拒错了！牛马也敢拒？-15分';
+      }
+      if (target) {
+        target.style.background = '#ffe0e0';
+        target.style.borderRadius = '4px';
+      }
+      $app.classList.add('screen-shake');
+      setTimeout(() => $app.classList.remove('screen-shake'), 500);
+    }
+  } else if (actionType === 'VENT_REJECT') {
+    state.score -= 7;
+    scoreChange = -7;
+    feedbackText = '💢 已读不回！-7分';
+    if (r.isTarget) {
+      state.score -= 10;
+      scoreChange = -17;
+      feedbackText = '💀 连牛马都宣泄了！-17分';
+    }
+    createVentEffect();
+    if (r.hrComment) showHrComment(r.hrComment);
+  }
+
+  if (scoreChange < 0) {
+    flashScore();
+    showScoreEffect(scoreChange, feedbackCls);
+  } else if (feedbackCls === 'positive' && actionType === 'NORMAL_REJECT') {
+    showScoreEffect(feedbackText, 'positive');
+  }
+
+  if (state.score < 0) state.score = 0;
+
+  $resumeBody.innerHTML += `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:${actionType==='VENT_REJECT'?'26px':'20px'};font-weight:900;color:${feedbackCls==='positive'?'#27ae60':'#e74c3c'};pointer-events:none;animation:floatUp .9s ease forwards;text-align:center;z-index:10">${feedbackText}</div>`;
+
+  updateStatus();
+
+  setTimeout(() => {
+    state.index++;
+    if (state.index >= TOTAL) {
+      endGame();
+    } else {
+      renderResume();
+    }
+  }, actionType === 'VENT_REJECT' ? 1000 : 800);
+}
+
+function endGame() {
+  state.gameOver = true;
+  state.locked = true;
+  $resultModal.classList.add('show');
+
+  const title = document.getElementById('result-title');
+  const scoreEl = document.getElementById('result-score');
+  const detailEl = document.getElementById('result-detail');
+  const commentEl = document.getElementById('result-comment');
+
+  scoreEl.textContent = `最终得分: ${state.score} 分`;
+  detailEl.textContent = `通过人数: ${state.passedCount} / 10 | 处理简历: ${TOTAL} 份`;
+
+  if (state.score >= 60 && state.passedCount === TARGET_COUNT) {
+    title.innerHTML = '🎉 恭喜通关！';
+    commentEl.textContent = '你成为了合格的黑心HR！你用炉火纯青的找茬技术，成功拒绝了20个职场显眼包，并精准捕捉到了10个愿意自愿加班的绝世好牛马。老板决定给你发100块奖金！';
+  } else if (state.score < 60) {
+    title.innerHTML = '❌ 游戏结束！';
+    commentEl.textContent = '你被公司开除了！你的分数太低了！你太喜欢点"已读不回"去宣泄情绪，导致公司名誉扫地，连牛马都招不进来了！';
+  } else {
+    title.innerHTML = '❌ 游戏结束！';
+    commentEl.textContent = 'KPI 未达标！你放过了太多的摸鱼怪，或者误把真正的牛马给拒绝了！全公司的活没人干了，老板让你今天打包走人！';
+  }
+}
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function restartGame() {
+  state = { score: 100, index: 0, passedCount: 0, locked: false, gameOver: false };
+  shuffleArray(resumes);
+  $resultModal.classList.remove('show');
+  $effects.innerHTML = '';
+  $hrComment.classList.remove('show');
+  updateStatus();
+  renderResume();
+}
+
+document.getElementById('resume-body').addEventListener('click', function(e) {
+  if (state.locked || state.gameOver) return;
+  const target = e.target.closest('[data-wrong]');
+  if (target) {
+    handleAction('NORMAL_REJECT', e);
+  }
+});
+
+document.getElementById('btn-pass').addEventListener('click', function(e) {
+  handleAction('PASS', e);
+});
+
+document.getElementById('btn-vent').addEventListener('click', function(e) {
+  handleAction('VENT_REJECT', e);
+});
+
+(function trackView() {
+  const counterApi = 'https://api.countapi.xyz/hit/boss-direct-reject-game/visits';
+  fetch(counterApi)
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.value !== undefined) {
+        document.getElementById('view-count').textContent = data.value;
+      }
+    })
+    .catch(() => {
+      document.getElementById('view-count').textContent = '---';
+    });
+})();
+
+shuffleArray(resumes);
+renderResume();
+</script>
+</body>
+</html>
